@@ -174,7 +174,7 @@
             transform: translateY(0);
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="text"] {
             padding: 15px;
             font-size: 1.5em;
             border-radius: 10px;
@@ -185,13 +185,13 @@
             transition: all 0.3s;
         }
 
-        .dark input[type="number"] {
+        .dark input[type="number"], .dark input[type="text"] {
             background: rgba(15, 23, 42, 0.8);
             border: 2px solid rgba(59, 130, 246, 0.5);
             color: white;
         }
 
-        .light input[type="number"] {
+        .light input[type="number"], .light input[type="text"] {
             background: white;
             border: 2px solid rgba(59, 130, 246, 0.6);
             color: #1e40af;
@@ -203,7 +203,7 @@
             margin: 0;
         }
 
-        input[type="number"]:focus {
+        input:focus {
             outline: none;
             border-color: #60a5fa;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
@@ -231,12 +231,9 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
-        .settings-modal.hidden {
-    display: none !important;
-}
         .score {
             position: absolute;
             top: 20px;
@@ -257,10 +254,9 @@
             color: #1e40af;
         }
 
-        .settings-btn {
+        .settings-btn, .leaderboard-btn {
             position: absolute;
             top: 20px;
-            left: 20px;
             padding: 10px 20px;
             font-size: 1.5em;
             border-radius: 50%;
@@ -271,7 +267,15 @@
             justify-content: center;
         }
 
-        .settings-modal {
+        .settings-btn {
+            left: 20px;
+        }
+
+        .leaderboard-btn {
+            left: 80px;
+        }
+
+        .modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -284,19 +288,21 @@
             z-index: 1000;
         }
 
-        .settings-content {
+        .modal-content {
             border-radius: 15px;
             padding: 30px;
-            max-width: 400px;
+            max-width: 500px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
-        .dark .settings-content {
+        .dark .modal-content {
             background: linear-gradient(145deg, #1e3a8a, #1e2956);
             border: 2px solid rgba(59, 130, 246, 0.3);
         }
 
-        .light .settings-content {
+        .light .modal-content {
             background: linear-gradient(145deg, #ffffff, #f0f9ff);
             border: 2px solid rgba(59, 130, 246, 0.5);
         }
@@ -356,10 +362,85 @@
         .light .value-display {
             color: #2563eb;
         }
+
+        .leaderboard-entry {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dark .leaderboard-entry {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .light .leaderboard-entry {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .leaderboard-entry.top-3 {
+            font-weight: bold;
+        }
+
+        .dark .leaderboard-entry.top-3 {
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid rgba(59, 130, 246, 0.5);
+        }
+
+        .light .leaderboard-entry.top-3 {
+            background: rgba(147, 197, 253, 0.3);
+            border: 2px solid rgba(59, 130, 246, 0.6);
+        }
+
+        .rank {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .player-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .time-info {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .dark .time-info {
+            color: #60a5fa;
+        }
+
+        .light .time-info {
+            color: #2563eb;
+        }
+
+        .player-name {
+            font-size: 1.1em;
+        }
+
+        .timer {
+            font-size: 1.5em;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .dark .timer {
+            color: #fbbf24;
+        }
+
+        .light .timer {
+            color: #f59e0b;
+        }
     </style>
 </head>
 <body class="dark">
     <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    <button class="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
     <div class="score">Score: <span id="score">0</span></div>
     
     <div class="game-container">
@@ -375,6 +456,7 @@
         </div>
         
         <div id="inputScreen" class="hidden">
+            <div class="timer" id="timer">Time: 0.0s</div>
             <input type="number" id="answerInput" placeholder="Your answer">
             <br>
             <button onclick="submitAnswer()">SUBMIT</button>
@@ -383,12 +465,23 @@
         <div id="resultScreen" class="hidden">
             <div class="result" id="resultText"></div>
             <div class="answer-reveal" id="answerReveal"></div>
+            <div class="timer" id="resultTime"></div>
             <button onclick="startGame()">TRY AGAIN</button>
         </div>
     </div>
 
-    <div id="settingsModal" class="settings-modal hidden">
-        <div class="settings-content">
+    <div id="nameModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">🎉 Great Job!</h2>
+            <p style="margin-bottom: 20px;">Enter your name for the leaderboard:</p>
+            <input type="text" id="nameInput" placeholder="Your name" maxlength="20" style="width: 90%;">
+            <br>
+            <button onclick="saveName()" style="width: 90%; margin-top: 20px;">SAVE</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
             <h2 style="margin-bottom: 20px;">⚙️ Settings</h2>
             
             <div class="setting-row">
@@ -418,16 +511,43 @@
         </div>
     </div>
 
+    <div id="leaderboardModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">🏆 Top 10 Leaderboard</h2>
+            <div id="leaderboardContent">Loading...</div>
+            <button onclick="closeLeaderboard()" style="width: 100%; margin-top: 20px;">CLOSE</button>
+        </div>
+    </div>
+
     <script>
         let numbers = [];
         let correctAnswer = 0;
         let score = 0;
         let currentIndex = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let responseTime = 0;
+        let playerName = null;
         
         // Settings
         let numberSpeed = 1000;
         let numberOfDigits = 5;
         let numberRange = 20;
+
+        // Load player name on start
+        async function loadPlayerName() {
+            try {
+                const result = await window.storage.get('player_name');
+                if (result && result.value) {
+                    playerName = result.value;
+                }
+            } catch (error) {
+                console.log('No saved name found');
+            }
+        }
+
+        // Initialize
+        loadPlayerName();
 
         function openSettings() {
             document.getElementById('settingsModal').classList.remove('hidden');
@@ -435,6 +555,15 @@
 
         function closeSettings() {
             document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        async function openLeaderboard() {
+            document.getElementById('leaderboardModal').classList.remove('hidden');
+            await displayLeaderboard();
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboardModal').classList.add('hidden');
         }
 
         function updateSpeed(value) {
@@ -467,14 +596,14 @@
             document.getElementById('inputScreen').classList.add('hidden');
             document.getElementById('resultScreen').classList.add('hidden');
             
-            // Generate random numbers based on settings
+            // Generate random numbers
             for (let i = 0; i < numberOfDigits; i++) {
                 numbers.push(Math.floor(Math.random() * numberRange) + 1);
             }
             
             correctAnswer = numbers.reduce((a, b) => a + b, 0);
             
-            // Show countdown
+            // Show numbers
             showNumbers();
         }
 
@@ -494,9 +623,28 @@
             display.innerHTML = '<div class="message">What\'s the sum?</div>';
             document.getElementById('inputScreen').classList.remove('hidden');
             document.getElementById('answerInput').focus();
+            
+            // Start timer
+            startTime = Date.now();
+            updateTimer();
         }
 
-        function submitAnswer() {
+        function updateTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                document.getElementById('timer').textContent = `Time: ${elapsed.toFixed(1)}s`;
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            responseTime = (Date.now() - startTime) / 1000;
+        }
+
+        async function submitAnswer() {
             const userAnswer = parseInt(document.getElementById('answerInput').value);
             const display = document.getElementById('displayArea');
             
@@ -505,6 +653,7 @@
                 return;
             }
             
+            stopTimer();
             document.getElementById('inputScreen').classList.add('hidden');
             
             if (userAnswer === correctAnswer) {
@@ -514,40 +663,158 @@
                 document.getElementById('resultText').innerHTML = '✓ Correct!';
                 document.getElementById('resultText').className = 'result correct';
                 document.getElementById('answerReveal').innerHTML = '';
+                document.getElementById('resultTime').innerHTML = `⏱️ Time: ${responseTime.toFixed(2)}s`;
+                
+                // Ask for name and save to leaderboard
+                if (!playerName) {
+                    setTimeout(() => {
+                        document.getElementById('nameModal').classList.remove('hidden');
+                        document.getElementById('nameInput').focus();
+                    }, 1000);
+                } else {
+                    await saveScore(playerName, responseTime);
+                }
             } else {
                 display.innerHTML = '<div class="result incorrect">❌ Not Quite!</div>';
                 document.getElementById('resultText').innerHTML = '✗ Incorrect';
                 document.getElementById('resultText').className = 'result incorrect';
                 document.getElementById('answerReveal').innerHTML = 
                     `The numbers were: ${numbers.join(' + ')} = ${correctAnswer}`;
+                document.getElementById('resultTime').innerHTML = `⏱️ Time: ${responseTime.toFixed(2)}s`;
             }
             
             document.getElementById('resultScreen').classList.remove('hidden');
         }
 
-        // Allow Enter key to submit
+        async function saveName() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) {
+                alert('Please enter a name!');
+                return;
+            }
+            
+            playerName = name;
+            
+            try {
+                await window.storage.set('player_name', name);
+                await saveScore(name, responseTime);
+                document.getElementById('nameModal').classList.add('hidden');
+            } catch (error) {
+                console.error('Error saving name:', error);
+                alert('Error saving name. Please try again.');
+            }
+        }
+
+        async function saveScore(name, time) {
+            try {
+                // Get existing leaderboard
+                let leaderboard = [];
+                try {
+                    const result = await window.storage.get('leaderboard', true);
+                    if (result && result.value) {
+                        leaderboard = JSON.parse(result.value);
+                    }
+                } catch (error) {
+                    leaderboard = [];
+                }
+                
+                // Add new score
+                leaderboard.push({
+                    name: name,
+                    time: time,
+                    date: new Date().toISOString()
+                });
+                
+                // Sort by time (fastest first)
+                leaderboard.sort((a, b) => a.time - b.time);
+                
+                // Keep top 10
+                leaderboard = leaderboard.slice(0, 10);
+                
+                // Save back
+                await window.storage.set('leaderboard', JSON.stringify(leaderboard), true);
+            } catch (error) {
+                console.error('Error saving score:', error);
+            }
+        }
+
+        async function displayLeaderboard() {
+            try {
+                const result = await window.storage.get('leaderboard', true);
+                let leaderboard = [];
+                
+                if (result && result.value) {
+                    leaderboard = JSON.parse(result.value);
+                }
+                
+                const content = document.getElementById('leaderboardContent');
+                
+                if (leaderboard.length === 0) {
+                    content.innerHTML = '<p style="text-align: center; padding: 20px;">No scores yet! Be the first to play!</p>';
+                    return;
+                }
+                
+                let html = '';
+                leaderboard.forEach((entry, index) => {
+                    const rank = index + 1;
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                    const topClass = rank <= 3 ? 'top-3' : '';
+                    
+                    html += `
+                        <div class="leaderboard-entry ${topClass}">
+                            <span class="rank">${medal || rank + '.'}</span>
+                            <div class="player-info">
+                                <div class="player-name">${entry.name}</div>
+                            </div>
+                            <div class="time-info">${entry.time.toFixed(2)}s</div>
+                        </div>
+                    `;
+                });
+                
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                document.getElementById('leaderboardContent').innerHTML = '<p style="text-align: center; padding: 20px;">Error loading leaderboard</p>';
+            }
+        }
+
+        // Enter key handlers
         document.getElementById('answerInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 submitAnswer();
             }
         });
 
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveName();
+            }
+        });
+
+        // Escape key to close modals
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'esc') {
+            if (e.key === 'Escape') {
+                closeSettings();
+                closeLeaderboard();
+            }
+        });
+
+        // Click outside to close
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
                 closeSettings();
             }
         });
-        document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-                    closeSettings();
-    console.log('Escape key pressed!');
-  }
-});
 
-        // Close modal when clicking outside
-       document.getElementById('settingsModal').addEventListener('click', function(e) {
+        document.getElementById('leaderboardModal').addEventListener('click', function(e) {
             if (e.target === this) {
-                closeSettings();
+                closeLeaderboard();
+            }
+        });
+
+        document.getElementById('nameModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                // Don't allow closing name modal by clicking outside
             }
         });
     </script>
