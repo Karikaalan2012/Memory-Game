@@ -174,7 +174,17 @@
             transform: translateY(0);
         }
 
-        input[type="number"], input[type="text"] {
+        .danger-btn {
+            background: linear-gradient(145deg, #ef4444, #dc2626) !important;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .danger-btn:hover {
+            background: linear-gradient(145deg, #dc2626, #b91c1c) !important;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6) !important;
+        }
+
+        input[type="number"], input[type="text"], input[type="password"] {
             padding: 15px;
             font-size: 1.5em;
             border-radius: 10px;
@@ -185,13 +195,13 @@
             transition: all 0.3s;
         }
 
-        .dark input[type="number"], .dark input[type="text"] {
+        .dark input[type="number"], .dark input[type="text"], .dark input[type="password"] {
             background: rgba(15, 23, 42, 0.8);
             border: 2px solid rgba(59, 130, 246, 0.5);
             color: white;
         }
 
-        .light input[type="number"], .light input[type="text"] {
+        .light input[type="number"], .light input[type="text"], .light input[type="password"] {
             background: white;
             border: 2px solid rgba(59, 130, 246, 0.6);
             color: #1e40af;
@@ -254,7 +264,7 @@
             color: #1e40af;
         }
 
-        .settings-btn, .leaderboard-btn {
+        .settings-btn, .leaderboard-btn, .admin-btn {
             position: absolute;
             top: 20px;
             padding: 10px 20px;
@@ -273,6 +283,10 @@
 
         .leaderboard-btn {
             left: 80px;
+        }
+
+        .admin-btn {
+            left: 140px;
         }
 
         .modal {
@@ -436,11 +450,35 @@
         .light .timer {
             color: #f59e0b;
         }
+
+        .admin-section {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .dark .admin-section {
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .light .admin-section {
+            background: rgba(254, 226, 226, 0.5);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .warning-text {
+            color: #fbbf24;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body class="dark">
     <button class="settings-btn" onclick="openSettings()">⚙️</button>
     <button class="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
+    <button class="admin-btn" onclick="openAdmin()">🔒</button>
     <div class="score">Score: <span id="score">0</span></div>
     
     <div class="game-container">
@@ -519,6 +557,33 @@
         </div>
     </div>
 
+    <div id="passwordModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">🔒 Enter Password</h2>
+            <p style="margin-bottom: 20px;">Admin access required:</p>
+            <input type="password" id="passwordInput" placeholder="Password" style="width: 90%;">
+            <br>
+            <button onclick="checkPassword()" style="width: 90%; margin-top: 20px;">UNLOCK</button>
+            <button onclick="closePassword()" style="width: 90%; margin-top: 10px;">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">🔓 Admin Panel</h2>
+            
+            <div class="admin-section">
+                <h3 style="margin-bottom: 15px; color: #ef4444;">⚠️ Danger Zone</h3>
+                <p class="warning-text">This action cannot be undone!</p>
+                <button class="danger-btn" onclick="clearLeaderboard()" style="width: 100%; margin-top: 15px;">
+                    CLEAR LEADERBOARD
+                </button>
+            </div>
+            
+            <button onclick="closeAdmin()" style="width: 100%; margin-top: 20px;">CLOSE</button>
+        </div>
+    </div>
+
     <script>
         let numbers = [];
         let correctAnswer = 0;
@@ -534,12 +599,15 @@
         let numberOfDigits = 5;
         let numberRange = 20;
 
+        // Admin password - CHANGE THIS TO YOUR PASSWORD
+        const ADMIN_PASSWORD = "Karikaalan26";
+
         // Load player name on start
-        async function loadPlayerName() {
+        function loadPlayerName() {
             try {
-                const result = await window.storage.get('player_name');
-                if (result && result.value) {
-                    playerName = result.value;
+                const savedName = localStorage.getItem('player_name');
+                if (savedName) {
+                    playerName = savedName;
                 }
             } catch (error) {
                 console.log('No saved name found');
@@ -557,13 +625,54 @@
             document.getElementById('settingsModal').classList.add('hidden');
         }
 
-        async function openLeaderboard() {
+        function openLeaderboard() {
             document.getElementById('leaderboardModal').classList.remove('hidden');
-            await displayLeaderboard();
+            displayLeaderboard();
         }
 
         function closeLeaderboard() {
             document.getElementById('leaderboardModal').classList.add('hidden');
+        }
+
+        function openAdmin() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+        }
+
+        function closePassword() {
+            document.getElementById('passwordModal').classList.add('hidden');
+        }
+
+        function checkPassword() {
+            const enteredPassword = document.getElementById('passwordInput').value;
+            if (enteredPassword === ADMIN_PASSWORD) {
+                closePassword();
+                document.getElementById('adminModal').classList.remove('hidden');
+            } else {
+                alert('❌ Incorrect password!');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        function clearLeaderboard() {
+            if (confirm('⚠️ Are you absolutely sure you want to clear the entire leaderboard?\n\nThis action CANNOT be undone!')) {
+                if (confirm('🚨 FINAL WARNING: All leaderboard data will be permanently deleted!\n\nContinue?')) {
+                    try {
+                        localStorage.removeItem('leaderboard');
+                        alert('✅ Leaderboard cleared successfully!');
+                        closeAdmin();
+                    } catch (error) {
+                        console.error('Error clearing leaderboard:', error);
+                        alert('❌ Error clearing leaderboard. Please try again.');
+                    }
+                }
+            }
         }
 
         function updateSpeed(value) {
@@ -644,7 +753,7 @@
             responseTime = (Date.now() - startTime) / 1000;
         }
 
-        async function submitAnswer() {
+        function submitAnswer() {
             const userAnswer = parseInt(document.getElementById('answerInput').value);
             const display = document.getElementById('displayArea');
             
@@ -672,7 +781,7 @@
                         document.getElementById('nameInput').focus();
                     }, 1000);
                 } else {
-                    await saveScore(playerName, responseTime);
+                    saveScore(playerName, responseTime);
                 }
             } else {
                 display.innerHTML = '<div class="result incorrect">❌ Not Quite!</div>';
@@ -686,7 +795,7 @@
             document.getElementById('resultScreen').classList.remove('hidden');
         }
 
-        async function saveName() {
+        function saveName() {
             const name = document.getElementById('nameInput').value.trim();
             if (!name) {
                 alert('Please enter a name!');
@@ -696,8 +805,8 @@
             playerName = name;
             
             try {
-                await window.storage.set('player_name', name);
-                await saveScore(name, responseTime);
+                localStorage.setItem('player_name', name);
+                saveScore(name, responseTime);
                 document.getElementById('nameModal').classList.add('hidden');
             } catch (error) {
                 console.error('Error saving name:', error);
@@ -705,17 +814,13 @@
             }
         }
 
-        async function saveScore(name, time) {
+        function saveScore(name, time) {
             try {
                 // Get existing leaderboard
                 let leaderboard = [];
-                try {
-                    const result = await window.storage.get('leaderboard', true);
-                    if (result && result.value) {
-                        leaderboard = JSON.parse(result.value);
-                    }
-                } catch (error) {
-                    leaderboard = [];
+                const savedData = localStorage.getItem('leaderboard');
+                if (savedData) {
+                    leaderboard = JSON.parse(savedData);
                 }
                 
                 // Add new score
@@ -732,19 +837,19 @@
                 leaderboard = leaderboard.slice(0, 10);
                 
                 // Save back
-                await window.storage.set('leaderboard', JSON.stringify(leaderboard), true);
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
             } catch (error) {
                 console.error('Error saving score:', error);
             }
         }
 
-        async function displayLeaderboard() {
+        function displayLeaderboard() {
             try {
-                const result = await window.storage.get('leaderboard', true);
+                const savedData = localStorage.getItem('leaderboard');
                 let leaderboard = [];
                 
-                if (result && result.value) {
-                    leaderboard = JSON.parse(result.value);
+                if (savedData) {
+                    leaderboard = JSON.parse(savedData);
                 }
                 
                 const content = document.getElementById('leaderboardContent');
@@ -791,11 +896,19 @@
             }
         });
 
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+
         // Escape key to close modals
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeSettings();
                 closeLeaderboard();
+                closePassword();
+                closeAdmin();
             }
         });
 
@@ -809,6 +922,18 @@
         document.getElementById('leaderboardModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeLeaderboard();
+            }
+        });
+
+        document.getElementById('passwordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePassword();
+            }
+        });
+
+        document.getElementById('adminModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAdmin();
             }
         });
 
